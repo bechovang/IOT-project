@@ -1,0 +1,121 @@
+ESP32 MP3 Player
+For our next experiment, we will be using an I2S amplifier module. The sound source will be an MP3 file that is stored on a MicroSD card.
+
+This is an extremely basic MP3 player, for practical use you would need to make a system for navigating the MicroSD to play more than one selection.  It’s just to illustrate how to use the I2S amplifier, as well as a library that makes working with I2S audio applications a bit easier.
+
+MP3 Player Components
+We will be adding two components to our ESP32 to construct our MP3 player, specifically an aI2S amplifier and a MicroSD card breakout box.  Of course, we will also need a MicroSD card, a small one formatted with FAT32.  Put an MP3 file onto the card, in our experiment we will only be playing one selection.
+
+MAX98357A I2S Amplifier Module
+The MAX98357A I2S amplifier module is an inexpensive yet surprisingly powerful audio amplifier module with an I2S input.
+
+The device can output up to 3 watts into a 4-ohm load. Note that you must use a speaker with a 4 to 8-ohm voice coils, and you can’t use a dynamic speaker, as the voice coil is actually part of the output filtering circuit in the module.
+
+The device has the following pinout:
+
+
+Note that the data is input on the DIN line, not the SD line, which is used for output channel selection. We will go into detail about output channel selection in a bit.
+
+Adafruit MicroSD Breakout Board
+We need a MicroSD card breakout board and I selected one from Adafruit. The reason for getting this module was its ability to work with both 3.3-volt and 5-volt logic. If you use another board, make sure it can operate on 3.3-volts, as many popular modules are for 5-volt logic and would damage the ESP32.
+
+The MicroSD card module uses the SPI bus for communications.
+
+MP3 Player Hookup
+Here is the hookup for our MP3 player:
+
+
+If you wish, you can move the I2S amplifier to different GPIO pins, as nothing is special about them. Just be sure to make the appropriate changes in the sketch. The MicroSD card requires SPI bus connections, there are several on the ESP32 to choose from.
+
+MP3 Player Code
+We will be using a library that makes working with I2S a lot easier. It isn’t in your Library Manager, so you’ll need to download it.
+
+The ESP32-AudioI2S Library can be found on GitHub, you can either clone it into your Arduino Libraries folder or just download it as a ZIP file. If you grab the ZIP file, you can add it to your Arduino IDE using the Add ZIP Library item on the Sketch menu.
+
+This library will simplify working with I2S, you create an “audio” object that you can then manipulate in code.
+
+Here is the sketch that we will be using:
+
+/*
+  ESP32 SD I2S Music Player
+  esp32-i2s-sd-player.ino
+  Plays MP3 file from microSD card
+  Uses MAX98357 I2S Amplifier Module
+  Uses ESP32-audioI2S Library - https://github.com/schreibfaul1/ESP32-audioI2S
+  * 
+  DroneBot Workshop 2022
+  https://dronebotworkshop.com
+*/
+ 
+// Include required libraries
+#include "Arduino.h"
+#include "Audio.h"
+#include "SD.h"
+#include "FS.h"
+ 
+// microSD Card Reader connections
+#define SD_CS          5
+#define SPI_MOSI      23 
+#define SPI_MISO      19
+#define SPI_SCK       18
+ 
+// I2S Connections
+#define I2S_DOUT      22
+#define I2S_BCLK      26
+#define I2S_LRC       25
+ 
+ // Create Audio object
+Audio audio;
+ 
+void setup() {
+    
+    // Set microSD Card CS as OUTPUT and set HIGH
+    pinMode(SD_CS, OUTPUT);      
+    digitalWrite(SD_CS, HIGH); 
+    
+    // Initialize SPI bus for microSD Card
+    SPI.begin(SPI_SCK, SPI_MISO, SPI_MOSI);
+    
+    // Start Serial Port
+    Serial.begin(115200);
+    
+    // Start microSD Card
+    if(!SD.begin(SD_CS))
+    {
+      Serial.println("Error accessing microSD card!");
+      while(true); 
+    }
+    
+    // Setup I2S 
+    audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
+    
+    // Set Volume
+    audio.setVolume(5);
+    
+    // Open music file
+    audio.connecttoFS(SD,"/MYMUSIC.mp3");
+    
+}
+ 
+void loop()
+{
+    audio.loop();    
+}
+We start by loading the new library we just installed, along with the SD and SPI libraries that we will need to work with the MicroSD card breakout.
+
+We then define the connection to both the MicroSD module and the I2S amplifier module.
+
+After that, we use our new library to create an “audio” object.
+
+In Setup, we set up the CS (Chip Select) lead on the MicroSD so that it is always selected.  We start the serial port and also start the MicroSD card.
+
+Assuming that the MicroSD is OK, we then set up our I2C port. Note how much easier the library makes this compared to using just the ESP32 I2S library (upon which this library is dependent).
+
+We also set the audio level, any number from 0 (no audio) to 21 will work here. Best to start with a small number (I chose 5) as the amplifier is pretty efficient.
+
+Finally, we open up the MP3 file, using a “connect to FS (connect to File System) property of the audio object. Again, the library makes grabbing an audio source very easy.
+
+The Loop couldn’t be simpler. We just cal the Loop method of the audio object repeatedly.
+
+Test the MP3 Player
+Place a MicroSD card that has the file you wish to play into the breakout board. Load the code onto the ESP32.

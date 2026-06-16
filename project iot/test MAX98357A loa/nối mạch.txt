@@ -1,0 +1,10 @@
+VIN  : 3v3
+GND  : GND
+GAIN : GND
+DIN  : GPIO25   (= D4 tren board)
+BCLK : GPIO26   (= D5 tren board)
+LRC  : GPIO27   (= D6 tren board)
+Loa  : SPK+ / SPK-
+
+=> Day la bo chuan cho MAX98357A (25/26/27).
+   Tren board cua ban: D4=IO25, D5=IO26, D6=IO27 (nhan D khong = so GPIO).
